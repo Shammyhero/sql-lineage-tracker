@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sqllineage-tracker"
+version = "0.1.0"
+description = "A beautiful SQL lineage tracker that parses SQL files, extracts table & column-level lineage, and visualizes data flow with an interactive graph."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    {name = "Saman"},
+]
+keywords = ["sql", "lineage", "data-lineage", "etl", "data-engineering", "dbt", "sqlglot"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+    "sqlglot>=20.0.0",
+    "pydantic>=2.0.0",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "python-multipart>=0.0.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.25.0",
+    "build",
+    "twine",
+]
+
+[project.scripts]
+sqllineage = "sqllineage.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Shammyhero/sql-lineage-tracker"
+Repository = "https://github.com/Shammyhero/sql-lineage-tracker"
+Issues = "https://github.com/Shammyhero/sql-lineage-tracker/issues"
+
+[tool.setuptools.packages.find]
+include = ["sqllineage*"]
+
+[tool.setuptools.package-data]
+sqllineage = [
+    "web/*.html",
+    "web/*.css",
+    "web/*.js",
+    "web/**/*",
+]

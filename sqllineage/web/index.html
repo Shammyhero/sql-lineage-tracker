@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Lineage Tracker</title>
+    <meta name="description"
+        content="Parse SQL files, extract data lineage, and visualize table & column dependencies with an interactive graph.">
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+<body>
+    <!-- Header -->
+    <header id="app-header">
+        <div class="header-left">
+            <div class="logo">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                    <circle cx="6" cy="8" r="3" fill="#6C7BFF" />
+                    <circle cx="22" cy="8" r="3" fill="#34D399" />
+                    <circle cx="14" cy="22" r="3" fill="#A78BFA" />
+                    <line x1="8.5" y1="9" x2="19.5" y2="9" stroke="#4B5563" stroke-width="1.5" stroke-dasharray="3 2" />
+                    <line x1="7" y1="10.5" x2="13" y2="20" stroke="#4B5563" stroke-width="1.5" stroke-dasharray="3 2" />
+                    <line x1="21" y1="10.5" x2="15" y2="20" stroke="#4B5563" stroke-width="1.5"
+                        stroke-dasharray="3 2" />
+                </svg>
+                <h1>SQL Lineage Tracker</h1>
+            </div>
+            <span class="version-badge">v0.1.0</span>
+        </div>
+        <div class="header-right">
+            <a href="https://github.com/saman/sql-lineage-tracker" target="_blank" class="github-link"
+                title="View on GitHub">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                </svg>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <main id="app-main">
+        <!-- Left Panel: Controls -->
+        <aside id="control-panel">
+            <!-- Upload Section -->
+            <section class="panel-section" id="upload-section">
+                <h2 class="section-title">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" opacity="0.6">
+                        <path
+                            d="M7 1a.5.5 0 0 1 .5.5V6h4.5a.5.5 0 0 1 0 1H7.5v4.5a.5.5 0 0 1-1 0V7H2a.5.5 0 0 1 0-1h4.5V1.5A.5.5 0 0 1 7 1z" />
+                    </svg>
+                    Upload SQL Files
+                </h2>
+                <div id="drop-zone" class="drop-zone">
+                    <div class="drop-zone-content">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                            <polyline points="17 8 12 3 7 8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        <p>Drop SQL files here</p>
+                        <span>or click to browse</span>
+                    </div>
+                    <input type="file" id="file-input" multiple accept=".sql,.txt" hidden>
+                </div>
+                <div id="file-list" class="file-list"></div>
+            </section>
+
+            <!-- Settings Section -->
+            <section class="panel-section" id="settings-section">
+                <h2 class="section-title">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" opacity="0.6">
+                        <path
+                            d="M8 4.754a3.246 3.246 0 100 6.492 3.246 3.246 0 000-6.492zM5.754 8a2.246 2.246 0 114.492 0 2.246 2.246 0 01-4.492 0z" />
+                        <path
+                            d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 01-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 01-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 01.52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 011.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 011.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 01.52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 01-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 01-1.255-.52l-.094-.319z" />
+                    </svg>
+                    Settings
+                </h2>
+                <div class="setting-group">
+                    <label for="dialect-select">SQL Dialect</label>
+                    <select id="dialect-select">
+                        <option value="">Auto-detect</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="column-toggle" checked>
+                        <span class="toggle-switch"></span>
+                        Column-level lineage
+                    </label>
+                </div>
+            </section>
+
+            <!-- Analyze Button -->
+            <button id="analyze-btn" class="primary-btn" disabled>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                Analyze Lineage
+            </button>
+
+            <!-- Stats Section (hidden initially) -->
+            <section class="panel-section" id="stats-section" style="display:none;">
+                <h2 class="section-title">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" opacity="0.6">
+                        <path d="M4 11H2v3h2v-3zm5.5-4h-2v7h2V7zM15 2h-2v12h2V2z" />
+                    </svg>
+                    Statistics
+                </h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-tables">0</span>
+                        <span class="stat-label">Tables</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-columns">0</span>
+                        <span class="stat-label">Columns</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-table-edges">0</span>
+                        <span class="stat-label">Table Edges</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-col-edges">0</span>
+                        <span class="stat-label">Column Edges</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Node Details (hidden initially) -->
+            <section class="panel-section" id="detail-section" style="display:none;">
+                <h2 class="section-title">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" opacity="0.6">
+                        <path d="M14 1a1 1 0 011 1v12a1 1 0 01-1 1H2a1 1 0 01-1-1V2a1 1 0 011-1h12z" />
+                    </svg>
+                    Node Details
+                </h2>
+                <div id="node-details"></div>
+            </section>
+        </aside>
+
+        <!-- Graph Area -->
+        <div id="graph-container">
+            <!-- Empty state -->
+            <div id="empty-state" class="empty-state">
+                <div class="empty-animation">
+                    <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
+                        <circle cx="30" cy="40" r="12" fill="#6C7BFF" opacity="0.3" class="pulse-circle" />
+                        <circle cx="90" cy="40" r="12" fill="#34D399" opacity="0.3" class="pulse-circle"
+                            style="animation-delay:0.5s" />
+                        <circle cx="60" cy="90" r="12" fill="#A78BFA" opacity="0.3" class="pulse-circle"
+                            style="animation-delay:1s" />
+                        <line x1="40" y1="43" x2="78" y2="43" stroke="#4B5563" stroke-width="2" stroke-dasharray="4 3"
+                            class="dash-animate" />
+                        <line x1="34" y1="51" x2="55" y2="80" stroke="#4B5563" stroke-width="2" stroke-dasharray="4 3"
+                            class="dash-animate" style="animation-delay:0.3s" />
+                        <line x1="86" y1="51" x2="65" y2="80" stroke="#4B5563" stroke-width="2" stroke-dasharray="4 3"
+                            class="dash-animate" style="animation-delay:0.6s" />
+                    </svg>
+                </div>
+                <h2>Upload SQL files to get started</h2>
+                <p>Drag and drop your .sql files, then click <strong>Analyze Lineage</strong> to visualize your data
+                    flow.</p>
+            </div>
+            <!-- Loading state -->
+            <div id="loading-state" class="loading-state" style="display:none;">
+                <div class="spinner"></div>
+                <p>Analyzing lineage...</p>
+            </div>
+            <!-- D3 Graph SVG -->
+            <svg id="lineage-graph" style="display:none;"></svg>
+            <!-- Graph Controls -->
+            <div id="graph-controls" class="graph-controls" style="display:none;">
+                <button id="zoom-in-btn" class="graph-ctrl-btn" title="Zoom In">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                </button>
+                <button id="zoom-out-btn" class="graph-ctrl-btn" title="Zoom Out">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                </button>
+                <button id="zoom-fit-btn" class="graph-ctrl-btn" title="Fit to View">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3" />
+                    </svg>
+                </button>
+                <div class="ctrl-divider"></div>
+                <button id="export-png-btn" class="graph-ctrl-btn" title="Export as PNG">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                </button>
+                <button id="export-json-btn" class="graph-ctrl-btn" title="Export as JSON">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                </button>
+            </div>
+            <!-- Search Bar (floating inside graph) -->
+            <div id="search-bar" class="search-bar" style="display:none;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input type="text" id="search-input" placeholder="Search tables and columns...">
+            </div>
+            <!-- Legend -->
+            <div id="graph-legend" class="graph-legend" style="display:none;">
+                <button id="legend-close-btn" class="legend-close-btn" title="Close legend">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+                <div class="legend-title">LEGEND</div>
+                <div class="legend-row">
+                    <span class="legend-color" style="background:#3B82F6;"></span>
+                    <span>Source / Raw</span>
+                </div>
+                <div class="legend-row">
+                    <span class="legend-color" style="background:#06B6D4;"></span>
+                    <span>Staging</span>
+                </div>
+                <div class="legend-row">
+                    <span class="legend-color" style="background:#8B5CF6;"></span>
+                    <span>Intermediate</span>
+                </div>
+                <div class="legend-row">
+                    <span class="legend-color" style="background:#10B981;"></span>
+                    <span>Mart / Analytics</span>
+                </div>
+                <div class="legend-divider"></div>
+                <div class="legend-row">
+                    <span class="legend-icon">⊞</span>
+                    <span>Table</span>
+                </div>
+                <div class="legend-row">
+                    <span class="legend-icon">◎</span>
+                    <span>View</span>
+                </div>
+                <div class="legend-row">
+                    <span class="legend-icon">↻</span>
+                    <span>CTE</span>
+                </div>
+                <div class="legend-divider"></div>
+                <div class="legend-row legend-hint">
+                    <span>→</span>
+                    <span>Data flows left → right</span>
+                </div>
+                <div class="legend-row legend-hint">
+                    <span>🖱</span>
+                    <span>Click a node to trace lineage</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast notification container -->
+    <div id="toast-container"></div>
+
+    <script src="/app.js"></script>
+</body>
+
+</html>
