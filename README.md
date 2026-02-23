@@ -1,121 +1,85 @@
 # 🔗 SQL Lineage Tracker
 
-**Parse SQL files. Extract data lineage. Visualize the flow.**
+A super simple, visual way to understand your SQL data flow.
 
-A beautiful, open-source Python tool that parses SQL files, extracts table & column-level lineage across multiple files, and renders an interactive graph in your browser.
+Ever looked at a massive folder of SQL files and wondered, *"Wait, which table feeds into which?"* or *"If I change this column, what breaks downstream?"*
+
+**SQL Lineage Tracker** figures that out for you. You just point it at your SQL files, and it pops open a beautiful, interactive graph in your browser showing exactly how your tables and columns connect.
 
 ---
 
-## ✨ Features
+## ✨ Why use it?
 
-- **20+ SQL Dialects** — PostgreSQL, MySQL, BigQuery, Snowflake, Spark, and more (powered by [sqlglot](https://github.com/tobymao/sqlglot))
-- **Complex SQL Support** — CTEs, subqueries, JOINs, UNIONs, MERGE, window functions
-- **Multi-File Resolution** — Upload interdependent SQL files and see cross-file lineage
-- **Table & Column Lineage** — Track dependencies at both table and column level
-- **Column Transformations** — See exactly how each column is derived (e.g., `SUM(amount)`, `LOWER(TRIM(email))`)
-- **Interactive Graph** — Hierarchical DAG layout with zoom, pan, search, and click-to-highlight
-- **Upstream/Downstream Tracing** — Click any node to trace its full lineage path
-- **Export** — Download lineage as PNG image or JSON data
-- **CLI & Web UI** — Use from the terminal or launch a gorgeous dark-mode web interface
-- **Execution Order** — Automatic topological sort of table dependencies
+- **It's visual:** No more reading thousands of lines of code to understand the architecture.
+- **Column-level tracking:** It doesn't just show table dependencies. It shows exactly how every single column is created (e.g., `SUM(amount) AS total`).
+- **Supports everything:** Works with PostgreSQL, MySQL, Snowflake, BigQuery, Databricks, and 15+ other dialects.
+- **Instant web UI:** Runs a gorgeous dark-mode web app locally on your machine.
+- **Private:** Processes everything locally. No data leaves your computer.
 
-## 🚀 Quick Start
+## 🚀 How to use it
 
-### Install from PyPI
+### 1. Install it
+Just install it using pip:
 
 ```bash
 pip install sqllineage-tracker
 ```
 
-### Install from Source
-
-```bash
-git clone https://github.com/Shammyhero/sql-lineage-tracker.git
-cd sql-lineage-tracker
-pip install -e .
-```
-
-### Launch the Web UI
+### 2. Run the Web App (Easiest Way)
+The best way to use the tracker is through the built-in web interface:
 
 ```bash
 sqllineage serve
 ```
 
-Then open [http://localhost:8000](http://localhost:8000) in your browser, upload your SQL files, and click **Analyze Lineage**.
+1. Open [http://localhost:8000](http://localhost:8000) in your browser.
+2. Drag and drop your `.sql` files into the upload box.
+3. Turn on **Column-level lineage** in the settings.
+4. Click **Analyze Lineage**!
 
-### CLI Usage
+### 3. Or... Use the CLI
+If you just want a quick terminal output, you can run the analyzer directly from the command line:
 
 ```bash
-# Analyze SQL files
+# See how your ecommerce tables connect
 sqllineage analyze examples/ecommerce/*.sql
 
-# JSON output
-sqllineage analyze examples/ecommerce/*.sql --format json
-
-# With column-level lineage
+# Include column-level details in the output
 sqllineage analyze examples/ecommerce/*.sql --columns
 
-# Specify dialect
-sqllineage analyze my_query.sql --dialect bigquery
-
-# List supported dialects
-sqllineage dialects
+# If you use a specific dialect, let it know (e.g., snowflake, bigquery, postgres)
+sqllineage analyze my_query.sql --dialect postgres
 ```
 
-### Use as a Library
+---
+
+## 💻 Running the Examples
+
+Want to see what it looks like before trying it on your own code? Clone this repo and run it on our example files!
+
+```bash
+git clone https://github.com/Shammyhero/sql-lineage-tracker.git
+cd sql-lineage-tracker
+
+sqllineage serve
+```
+Then upload the files from the `examples/ecommerce/` folder into the web interface.
+
+---
+
+## 🛠️ For Developers
+
+Want to use the lineage engine inside your own Python script?
 
 ```python
 from sqllineage import resolve_files
 
+# Parse files and build the dependency graph
 graph = resolve_files(["file1.sql", "file2.sql"], dialect="postgres")
 
-# Get D3.js-compatible JSON
-data = graph.to_d3_json()
-
-# Explore lineage
-print(graph.get_upstream("mart.user_summary"))
+# See what relies on this table
 print(graph.get_downstream("raw.users"))
 ```
 
-## 🏗️ Project Structure
-
-```
-sql-lineage-tracker/
-├── sqllineage/
-│   ├── core/
-│   │   ├── models.py        # Table, Column, LineageEdge, LineageGraph
-│   │   ├── parser.py        # sqlglot wrapper (20+ dialects)
-│   │   ├── extractor.py     # AST → lineage edges
-│   │   └── resolver.py      # Multi-file resolution + topo sort
-│   ├── api/
-│   │   └── server.py        # FastAPI backend
-│   ├── web/
-│   │   ├── index.html        # Web UI
-│   │   ├── styles.css        # Dark mode + glassmorphism
-│   │   └── app.js            # D3.js hierarchical DAG
-│   └── cli.py                # CLI entry point
-├── tests/                     # pytest test suite
-├── examples/                  # Sample SQL pipelines
-├── pyproject.toml
-└── LICENSE                    # MIT
-```
-
-## 🧪 Development
-
-```bash
-# Install with dev dependencies
-pip install -e ".[dev]"
-
-# Run tests
-pytest tests/ -v
-
-# Build the package
-python -m build
-
-# Check the package
-twine check dist/*
-```
-
 ## 📜 License
-
-MIT — see [LICENSE](LICENSE).
+MIT License. Do whatever you want with it!
